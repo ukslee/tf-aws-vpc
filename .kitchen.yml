@@ -1,0 +1,45 @@
+---
+driver:
+  name: terraform
+provisioner:
+  name: terraform
+verifier:
+  name: awspec
+
+platforms:
+  - name: aws
+    driver: &aws_driver
+      root_module_directory: test/fixtures/default
+      variables:
+        aws_region: <%= ENV['AWS_REGION'] || 'ap-northeast-1' %>
+        build_num: "<%= ENV['CIRCLE_BUILD_NUM'] || '1' %>"
+
+suites:
+  - name: local
+    driver:
+      <<: *aws_driver
+    verifier: &local_verifier
+      name: terraform
+      systems:
+        - name: local
+          backend: local
+          controls:
+            - state_file
+  - name: inspec
+    driver:
+      <<: *aws_driver
+    verifier: &inspec_verifier
+      name: terraform
+      systems:
+        - name: aws
+          backend: aws
+          controls:
+            - aws_vpc
+  - name: awspec
+    driver:
+      <<: *aws_driver
+    verifier: &awspec_verifier
+      patterns:
+      - "test/integration/awspec/*_spec.rb"
+      env_vars:
+        { fixture_dir: test/fixtures/default }
